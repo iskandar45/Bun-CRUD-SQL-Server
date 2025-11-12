@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: bun-app
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_USER=sa
+      - DB_PASS=P@ssw0rd
+      - DB_NAME=TestDB
+      - DB_SERVER=db
+    depends_on:
+      - db
+    command: ["bun", "run", "src/index.ts"]
+    volumes:
+      - .:/app
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=P@ssw0rd
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql_data:/var/opt/mssql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./sql/entrypoint.sh:/usr/src/app/entrypoint.sh
+    entrypoint: ["/bin/bash", "/usr/src/app/entrypoint.sh"]
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P P@ssw0rd -Q "SELECT 1" || exit 1
+      interval: 10s
+      retries: 10
+
+volumes:
+  sql_data:
